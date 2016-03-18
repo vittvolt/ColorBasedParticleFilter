@@ -74,7 +74,7 @@ public class ColorBasedParticleFilter{
 			Particle resampled_particle = get_new_particle(weighted_distribution);
 			new_particles_list.add(resampled_particle);
 		}
-		
+		particles.clear();
 		particles = new_particles_list;
 		
 		calculate_particles_xy_mean();
