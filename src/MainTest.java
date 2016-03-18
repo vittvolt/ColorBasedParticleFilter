@@ -16,6 +16,8 @@ import org.opencv.imgproc.Imgproc;
 import java.lang.*;
 import java.awt.FlowLayout;
 import java.awt.Image;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -31,6 +33,7 @@ public class MainTest
 	static ColorBasedParticleFilter mFilter = null;
 	static Mat img = null;
 	static boolean set = false;
+	static boolean in_process = true;
 	
 	static int X1 = 0;
 	static int X2 = 0;
@@ -49,6 +52,15 @@ public class MainTest
 	public static void main (String[] args) throws java.lang.Exception
 	{
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+		
+		KeyAdapter KL = new KeyAdapter() {
+			@Override
+	        public void keyPressed(KeyEvent e) {
+	            if (e.isShiftDown()){
+	            	in_process = false;
+	            }
+	        }
+		};
 		
 		MouseAdapter MA = new MouseAdapter() {
 			@Override
@@ -82,6 +94,7 @@ public class MainTest
 		frame.setLayout(new FlowLayout());
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.addMouseListener(MA);
+		frame.addKeyListener(KL);
 				
 		/*BufferedImage img1 = ImageIO.read(new File("E:/ball.jpg"));
 		BufferedImage img2 = ImageIO.read(new File("E:/download.jpg"));
@@ -122,9 +135,7 @@ public class MainTest
 		
 		vc.read(img);
 		
-		
-		
-		while (true){
+		while (in_process){
 			vc.read(img);			
 			
 			if (mFilter != null && set){

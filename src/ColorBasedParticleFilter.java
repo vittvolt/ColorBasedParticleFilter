@@ -15,16 +15,13 @@ import org.opencv.imgproc.Imgproc;
 
 
 public class ColorBasedParticleFilter{
-	
-	Random r = new Random(1234567893);
-	
+		
 	List<Particle> particles = new Vector<Particle>();
-	int NUMBER_OF_PARTICLES = 200;
+	int NUMBER_OF_PARTICLES = 150;
 	
 	Mat initial_frame_hist_b;
 	Mat initial_frame_hist_g;
 	Mat initial_frame_hist_r;
-	Mat current_frame;
 	
 	int image_width, image_height;
 	int tracking_window_width, tracking_window_height;
@@ -51,15 +48,13 @@ public class ColorBasedParticleFilter{
 	//Calculate weights for all particles, re-sample and then move the particles 
 	public void on_newFrame(Mat m){
 		
-		current_frame = m;
 		double weights_sum = 0;
 		
 		Iterator<Particle> i = particles.iterator();
 		while (i.hasNext()){
 			Particle p = i.next();
-			double weight = calc_weight_for_particle(p);
+			double weight = calc_weight_for_particle(p,m);
 			p.weight = weight;
-			
 			weights_sum += weight;
 		}
 		
@@ -67,9 +62,7 @@ public class ColorBasedParticleFilter{
 		i = particles.iterator();
 		while (i.hasNext()){
 			Particle p = i.next();
-			p.weight = p.weight / weights_sum;
-			
-			//System.out.println("Normalized Weight: "+p.weight);
+			p.weight = p.weight / weights_sum;			
 		}
 		List<Double> weighted_distribution = get_weighted_distribution(particles);
 		
@@ -89,9 +82,8 @@ public class ColorBasedParticleFilter{
 		move_particle();
 		
 		Imgproc.rectangle(m, new Point(mean_x, mean_y), new Point(mean_x + tracking_window_width, mean_y + tracking_window_height), new Scalar(255, 0, 0, 255), 3);
-		//Debug
-		System.out.println("Mean x,y: "+mean_x+" "+mean_y);
-		System.out.println("Num of samples: "+particles.size());
+
+		//Draw the particles
 		i = particles.iterator();
 		while(i.hasNext()){
 			Particle p = i.next();
@@ -144,14 +136,11 @@ public class ColorBasedParticleFilter{
 		mean_y = mean_y / particles.size();
 	}
 	
-	public double calc_weight_for_particle(Particle p){
+	public double calc_weight_for_particle(Particle p, Mat m){
 		double weight;
 		int x = (int) Math.floor((p.x));
 		int y = (int) Math.floor((p.y));
-		
-		//int x_end = (x + tracking_window_width >= image_width) ? image_width -1 : x + tracking_window_width;
-		//int y_end = (y + tracking_window_height >= image_height) ? image_height - 1 : y + tracking_window_height;
-		
+				
 		int x_end = x + tracking_window_width;
 		int y_end = y + tracking_window_height;
 		
@@ -165,7 +154,7 @@ public class ColorBasedParticleFilter{
 		}
 		
 		Rect rect= new Rect(new Point(x,y),new Point(x_end,y_end));
-		Mat submat = current_frame.submat(rect);
+		Mat submat = m.submat(rect);
 		Vector<Mat> bgr_channels = new Vector<Mat>(3);
 		Core.split(submat, bgr_channels);
 		
@@ -179,10 +168,7 @@ public class ColorBasedParticleFilter{
 		
 		double par = 0.33 * (correlation_b + correlation_g + correlation_r);
 		weight = Math.exp(-16 * (1 - par));
-		
-		//Debubg
-		//System.out.println(image_width+" "+image_height+"  "+tracking_window_width+" "+tracking_window_height+" x,end,y,end: "+x+" "+x_end+" "+y+" "+y_end+" Weight: "+ weight);
-		
+				
 		return weight;
 	}
 	
@@ -202,7 +188,7 @@ public class ColorBasedParticleFilter{
 	
 	public Particle get_new_particle(List<Double> weighted_distribution){
 		Particle new_particle = new Particle();
-		double number = r.nextDouble();
+		double number = ThreadLocalRandom.current().nextDouble();
 		
 		for (int i= 0; i < particles.size(); i++){
 			if (i == 0){
@@ -233,8 +219,8 @@ public class ColorBasedParticleFilter{
 
 		for (int i=0; i<particles.size(); i++){
 			Particle particle = particles.get(i);
-			double dx = 20 * r.nextDouble() - 10.0;
-			double dy = 20 * r.nextDouble() - 10.0;
+			double dx = 50 * ThreadLocalRandom.current().nextDouble() - 25.0;
+			double dy = 50 * ThreadLocalRandom.current().nextDouble() - 25.0;
 			
 			//Add gaussian noise
 			/*double p = Math.exp(- p * p / 0.2) - 0.5;		
@@ -244,11 +230,8 @@ public class ColorBasedParticleFilter{
 			p = Math.exp(- p * p / 0.2) - 0.5;
 			double delta_y = dy * (1 + p); */
 			
-			//Debug
-			//System.out.println("dx,dy: "+dx+" "+dy);
 			particle.x = particle.x + dx;
 			particle.y = particle.y + dy;
-			//System.out.println("After adding dx,dy: "+particle.x+" "+particle.y);
 			
 			if (particle.x <= 0) particle.x = 0;
 			if (particle.x >= image_width) particle.x = image_width-1;
